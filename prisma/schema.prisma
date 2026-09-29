@@ -1,0 +1,241 @@
+// Prisma Schema for eFootMarket Marketplace
+datasource db {
+  provider = "sqlite"
+  url      = "file:./dev.db"
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+model User {
+  id           String    @id @default(uuid())
+  name         String
+  email        String    @unique
+  password     String
+  role         String    @default("user") // "user" | "admin"
+  balance      Float     @default(0.0)
+  phone        String?
+  avatar       String?
+  isVerified   Boolean   @default(false)
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+
+  listings        Listing[]        @relation("UserListings")
+  consignments    Consignment[]    @relation("UserConsignments")
+  buyerOrders     Order[]          @relation("BuyerOrders")
+  sellerOrders    Order[]          @relation("SellerOrders")
+  reviews         Review[]
+  disputes        Dispute[]        @relation("ReportedDisputes")
+  disputeMessages DisputeMessage[]
+  withdrawals     Withdrawal[]
+  notifications   Notification[]
+  transactions    Transaction[]
+  activityLogs    ActivityLog[]
+}
+
+model Listing {
+  id              String      @id @default(uuid())
+  userId          String
+  title           String
+  price           Float
+  platform        String      // "Android", "iOS", "PC", "Console"
+  stock           Int         @default(1)
+  playerCount     Int         @default(0)
+  epicCount       Int         @default(0)
+  bigTimeCount    Int         @default(0)
+  gpAmount        Int         @default(0)
+  coinAmount      Int         @default(0)
+  squadInfo       String?
+  description     String
+  isVerified      Boolean     @default(false)
+  status          String      @default("pending") // pending, under_review, approved, rejected, active, reserved, sold, cancelled, completed
+  rejectionReason String?
+  createdAt       DateTime    @default(now())
+  updatedAt       DateTime    @updatedAt
+
+  user              User               @relation("UserListings", fields: [userId], references: [id], onDelete: Cascade)
+  images            ListingImage[]
+  gameAccountDetail GameAccountDetail?
+  orders            Order[]
+  consignments      Consignment[]
+  reviews           Review[]
+}
+
+model ListingImage {
+  id        String   @id @default(uuid())
+  listingId String
+  imageUrl  String
+  isPrimary Boolean  @default(false)
+  createdAt DateTime @default(now())
+
+  listing Listing @relation(fields: [listingId], references: [id], onDelete: Cascade)
+}
+
+model GameAccountDetail {
+  id                   String   @id @default(uuid())
+  listingId            String   @unique
+  loginType            String   // "Konami ID", "Google Play", "Game Center"
+  encryptedCredentials String   // Encrypted game credentials (accessible only by admin)
+  notes                String?
+  createdAt            DateTime @default(now())
+  updatedAt            DateTime @updatedAt
+
+  listing Listing @relation(fields: [listingId], references: [id], onDelete: Cascade)
+}
+
+model Order {
+  id            String   @id @default(uuid())
+  orderNumber   String   @unique // EFM-YYYYMMDD-XXXX
+  listingId     String
+  buyerId       String
+  sellerId      String
+  accountPrice  Float
+  serviceFee    Float
+  totalAmount   Float
+  paymentMethod String
+  paymentProof  String?
+  status        String   @default("pending_payment") // pending_payment, payment_review, paid, processing, handover, buyer_confirmation, completed, cancelled, disputed
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  listing      Listing       @relation(fields: [listingId], references: [id])
+  buyer        User          @relation("BuyerOrders", fields: [buyerId], references: [id])
+  seller       User          @relation("SellerOrders", fields: [sellerId], references: [id])
+  payments     Payment[]
+  transactions Transaction[]
+  reviews      Review[]
+  disputes     Dispute[]
+}
+
+model Payment {
+  id              String    @id @default(uuid())
+  orderId         String
+  amount          Float
+  paymentMethod   String
+  paymentProofUrl String?
+  status          String    @default("pending") // pending, review, verified, rejected
+  verifiedBy      String?
+  verifiedAt      DateTime?
+  createdAt       DateTime  @default(now())
+
+  order Order @relation(fields: [orderId], references: [id], onDelete: Cascade)
+}
+
+model Transaction {
+  id        String   @id @default(uuid())
+  orderId   String?
+  userId    String
+  type      String   // "sale", "fee", "withdrawal", "refund"
+  amount    Float
+  status    String   @default("completed") // "pending", "completed", "failed"
+  notes     String?
+  createdAt DateTime @default(now())
+
+  order Order? @relation(fields: [orderId], references: [id])
+  user  User   @relation(fields: [userId], references: [id])
+}
+
+model Consignment {
+  id               String   @id @default(uuid())
+  listingId        String
+  userId           String
+  status           String   @default("pending") // pending, under_review, approved, rejected, active, reserved, sold, cancelled, completed
+  agreedFeePercent Float    @default(5.0)
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  listing Listing @relation(fields: [listingId], references: [id], onDelete: Cascade)
+  user    User    @relation("UserConsignments", fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model Review {
+  id          String   @id @default(uuid())
+  orderId     String   @unique
+  listingId   String
+  reviewerId  String
+  rating      Int      // 1 to 5
+  comment     String
+  createdAt   DateTime @default(now())
+
+  order    Order   @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  listing  Listing @relation(fields: [listingId], references: [id], onDelete: Cascade)
+  reviewer User    @relation(fields: [reviewerId], references: [id], onDelete: Cascade)
+}
+
+model Dispute {
+  id              String   @id @default(uuid())
+  orderId         String
+  reporterId      String
+  reason          String
+  description     String
+  status          String   @default("open") // open, investigating, waiting_user, resolved, closed
+  resolutionNotes String?
+  resolvedBy      String?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  order    Order            @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  reporter User             @relation("ReportedDisputes", fields: [reporterId], references: [id], onDelete: Cascade)
+  messages DisputeMessage[]
+}
+
+model DisputeMessage {
+  id            String   @id @default(uuid())
+  disputeId     String
+  senderId      String
+  message       String
+  attachmentUrl String?
+  createdAt     DateTime @default(now())
+
+  dispute Dispute @relation(fields: [disputeId], references: [id], onDelete: Cascade)
+  sender  User    @relation(fields: [senderId], references: [id], onDelete: Cascade)
+}
+
+model Withdrawal {
+  id            String   @id @default(uuid())
+  userId        String
+  amount        Float
+  bankName      String
+  accountNumber String
+  accountHolder String
+  status        String   @default("pending") // pending, approved, rejected, completed
+  processedBy   String?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model Notification {
+  id        String   @id @default(uuid())
+  userId    String
+  title     String
+  message   String
+  type      String   // info, success, warning, order, payment, listing
+  isRead    Boolean  @default(false)
+  linkUrl   String?
+  createdAt DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model ActivityLog {
+  id        String   @id @default(uuid())
+  userId    String?
+  action    String
+  ipAddress String?
+  userAgent String?
+  details   String?
+  createdAt DateTime @default(now())
+
+  user User? @relation(fields: [userId], references: [id])
+}
+
+model Setting {
+  id          String   @id @default(uuid())
+  key         String   @unique
+  value       String
+  description String?
+  updatedAt   DateTime @updatedAt
+}
