@@ -10,7 +10,7 @@ export default function Checkout() {
   const [loading, setLoading] = useState(true);
 
   // User's WhatsApp Contact Person Number
-  const ADMIN_WA_NUMBER = '62895370263740';
+  const ADMIN_WA_NUMBER = '6285189441644';
 
   useEffect(() => {
     async function loadListing() {
@@ -116,7 +116,7 @@ export default function Checkout() {
             </div>
             <div>
               <div className="text-xs text-gray-400">Contact Person Resmi</div>
-              <div className="text-sm font-bold text-white">+62 895-3702-63740</div>
+              <div className="text-sm font-bold text-white">+62 851-8944-1644</div>
             </div>
           </div>
           <p className="text-xs text-gray-300">

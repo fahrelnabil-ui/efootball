@@ -26,7 +26,7 @@ export default function Home() {
   const navigate = useNavigate();
 
   // User's WhatsApp Contact Person Number
-  const ADMIN_WA_NUMBER = '62895370263740';
+  const ADMIN_WA_NUMBER = '6285189441644';
 
   useEffect(() => {
     async function fetchHomeData() {
@@ -89,7 +89,7 @@ export default function Home() {
             {/* Badge */}
             <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 text-xs font-semibold">
               <ShieldCheck className="w-4 h-4 text-emerald-400" />
-              Transaksi Langsung Via Contact Person Admin (+62 895-3702-63740)
+              Transaksi Langsung Via Contact Person Admin (+62 851-8944-1644)
             </div>
 
             {/* Main Headline */}
@@ -151,7 +151,7 @@ export default function Home() {
               <PhoneCall className="w-7 h-7" />
             </div>
             <div>
-              <h3 className="text-xl font-bold text-white">Contact Person Official Admin (+62 895-3702-63740)</h3>
+              <h3 className="text-xl font-bold text-white">Contact Person Official Admin (+62 851-8944-1644)</h3>
               <p className="text-xs text-gray-300 mt-1">
                 Ingin jual, beli, atau konsultasi akun eFootball? Hubungi WhatsApp Admin resmi kami tanpa perlu ribet registrasi akun.
               </p>

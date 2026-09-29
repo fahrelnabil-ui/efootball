@@ -24,7 +24,7 @@ export default function AccountDetail() {
   const [isZoomOpen, setIsZoomOpen] = useState(false);
 
   // User's WhatsApp Number
-  const ADMIN_WA_NUMBER = '62895370263740';
+  const ADMIN_WA_NUMBER = '6285189441644';
 
   useEffect(() => {
     async function loadDetail() {
@@ -232,7 +232,7 @@ export default function AccountDetail() {
                 </div>
                 <div>
                   <div className="text-xs text-gray-400">Contact Person Resmi</div>
-                  <div className="text-sm font-bold text-white">+62 895-3702-63740</div>
+                  <div className="text-sm font-bold text-white">+62 851-8944-1644</div>
                 </div>
               </div>
               <span className="text-[10px] bg-emerald-500/20 text-emerald-400 font-bold px-2 py-1 rounded-md border border-emerald-500/30">

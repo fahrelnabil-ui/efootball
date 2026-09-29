@@ -44,7 +44,7 @@ export default function Footer() {
               </li>
               <li>
                 <button
-                  onClick={() => window.open('https://wa.me/62895370263740?text=Halo%20Admin%20REVE%20EFOOTBALL,%20saya%20ingin%20menitip/menjual%20akun.', '_blank')}
+                  onClick={() => window.open('https://wa.me/6285189441644?text=Halo%20Admin%20REVE%20EFOOTBALL,%20saya%20ingin%20menitip/menjual%20akun.', '_blank')}
                   className="hover:text-emerald-400 transition-colors text-left"
                 >
                   Titip / Jual Akun (Hubungi Admin)
@@ -66,7 +66,7 @@ export default function Footer() {
                 <HelpCircle className="w-3.5 h-3.5 text-emerald-400" /> FAQ / Pertanyaan Umum
               </li>
               <li className="hover:text-emerald-400 transition-colors cursor-pointer">Panduan Serah-Terima Akun</li>
-              <li className="hover:text-emerald-400 transition-colors cursor-pointer">Hubungi Contact Person Admin (+62 895-3702-63740)</li>
+              <li className="hover:text-emerald-400 transition-colors cursor-pointer">Hubungi Contact Person Admin (+62 851-8944-1644)</li>
             </ul>
           </div>
 

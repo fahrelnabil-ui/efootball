@@ -20,7 +20,7 @@ export default function Navbar() {
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const navigate = useNavigate();
 
-  const ADMIN_WA_NUMBER = '62895370263740';
+  const ADMIN_WA_NUMBER = '6285189441644';
 
   // Secret Admin Shortcut: Ctrl + Shift + A or double-clicking Logo Icon
   useEffect(() => {

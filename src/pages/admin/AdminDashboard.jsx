@@ -464,7 +464,7 @@ export default function AdminDashboard() {
                 </a>
 
                 <button
-                  onClick={() => window.open('https://wa.me/62895370263740?text=Halo%20Admin%20REVE%20EFOOTBALL', '_blank')}
+                  onClick={() => window.open('https://wa.me/6285189441644?text=Halo%20Admin%20REVE%20EFOOTBALL', '_blank')}
                   className="w-full py-2 gradient-button rounded-xl text-xs font-extrabold flex items-center justify-center gap-1.5 shadow-lg shadow-emerald-500/20 cursor-pointer"
                 >
                   <MessageSquare className="w-3.5 h-3.5" /> WhatsApp Admin
