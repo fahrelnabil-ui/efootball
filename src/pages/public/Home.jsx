@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { apiFetch } from '../../services/api';
+import { FALLBACK_LISTINGS } from '../../services/fallbackData';
 import AccountCard from '../../components/marketplace/AccountCard';
 import {
   Gamepad2,
@@ -31,12 +32,33 @@ export default function Home() {
     async function fetchHomeData() {
       try {
         const res = await apiFetch('/listings?status=approved');
-        if (res.success) {
-          setFeatured(res.data.slice(0, 3));
-          setRecent(res.data.slice(0, 6));
+        if (res.success && Array.isArray(res.data) && res.data.length > 0) {
+          let combined = [...res.data];
+          try {
+            const localListings = JSON.parse(localStorage.getItem('efootmarket_local_listings') || '[]');
+            for (const localItem of localListings) {
+              if (!combined.some(c => c.id === localItem.id || c.title === localItem.title)) {
+                combined.unshift(localItem);
+              }
+            }
+          } catch (_) {}
+          setFeatured(combined.slice(0, 3));
+          setRecent(combined.slice(0, 6));
+          return;
         }
+        throw new Error('Data empty');
       } catch (e) {
-        console.error('Failed to load home listings:', e);
+        let combined = [...FALLBACK_LISTINGS];
+        try {
+          const localListings = JSON.parse(localStorage.getItem('efootmarket_local_listings') || '[]');
+          for (const localItem of localListings) {
+            if (!combined.some(c => c.id === localItem.id || c.title === localItem.title)) {
+              combined.unshift(localItem);
+            }
+          }
+        } catch (_) {}
+        setFeatured(combined.slice(0, 3));
+        setRecent(combined.slice(0, 6));
       } finally {
         setLoading(false);
       }

@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../../context/AuthContext';
-import { apiFetch } from '../../services/api';
+import { apiFetch, API_BASE, getImageUrl } from '../../services/api';
 import RevenueChart from '../../components/admin/RevenueChart';
 import {
   ShieldAlert,
@@ -99,31 +99,48 @@ export default function AdminDashboard() {
     if (!file) return;
 
     setUploadingImage(true);
-    const formData = new FormData();
-    formData.append('image', file);
+    setMsg({ type: '', text: '' });
 
-    try {
-      const token = localStorage.getItem('efootmarket_token');
-      const response = await fetch('/api/upload', {
-        method: 'POST',
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-        body: formData,
-      });
+    const reader = new FileReader();
+    reader.onload = async () => {
+      const base64Data = reader.result;
+      try {
+        const formData = new FormData();
+        formData.append('image', file);
+        const token = localStorage.getItem('efootmarket_token');
+        const uploadUrl = API_BASE.startsWith('http') ? `${API_BASE}/upload` : '/api/upload';
 
-      const data = await response.json();
-      if (data.success) {
-        setStockForm(prev => ({ ...prev, imageUrl: data.url }));
-        setMsg({ type: 'success', text: 'Foto berhasil diunggah!' });
-      } else {
-        setMsg({ type: 'error', text: data.message || 'Gagal mengunggah foto.' });
+        const response = await fetch(uploadUrl, {
+          method: 'POST',
+          headers: {
+            ...(token ? { Authorization: `Bearer ${token}` } : {}),
+          },
+          body: formData,
+        });
+
+        const contentType = response.headers.get('content-type') || '';
+        if (response.ok && contentType.includes('application/json')) {
+          const data = await response.json();
+          if (data.success && data.url) {
+            setStockForm(prev => ({ ...prev, imageUrl: data.url }));
+            setMsg({ type: 'success', text: 'Foto berhasil diunggah!' });
+            return;
+          }
+        }
+        setStockForm(prev => ({ ...prev, imageUrl: base64Data }));
+        setMsg({ type: 'success', text: 'Foto berhasil dimuat (Base64)!' });
+      } catch (err) {
+        setStockForm(prev => ({ ...prev, imageUrl: base64Data }));
+        setMsg({ type: 'success', text: 'Foto berhasil dimuat!' });
+      } finally {
+        setUploadingImage(false);
       }
-    } catch (err) {
-      setMsg({ type: 'error', text: 'Gagal mengunggah file gambar.' });
-    } finally {
+    };
+    reader.onerror = () => {
+      setMsg({ type: 'error', text: 'Gagal membaca file gambar.' });
       setUploadingImage(false);
-    }
+    };
+    reader.readAsDataURL(file);
   };
 
   // Submit Admin Stock (Create / Update)

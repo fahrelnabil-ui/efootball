@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, Link } from 'react-router-dom';
-import { apiFetch } from '../../services/api';
+import { apiFetch, getImageUrl } from '../../services/api';
+import { FALLBACK_LISTINGS } from '../../services/fallbackData';
 import { ShieldCheck, MessageSquare, ArrowLeft, PhoneCall, CheckCircle2, Lock } from 'lucide-react';
 
 export default function Checkout() {
@@ -15,11 +16,20 @@ export default function Checkout() {
     async function loadListing() {
       try {
         const res = await apiFetch(`/listings/${listingId}`);
-        if (res.success) {
+        if (res.success && res.data) {
           setListing(res.data);
+          return;
         }
       } catch (e) {
-        console.error(e);
+        let fallback = [...FALLBACK_LISTINGS];
+        try {
+          const localListings = JSON.parse(localStorage.getItem('efootmarket_local_listings') || '[]');
+          fallback = [...localListings, ...fallback];
+        } catch (_) {}
+        const found = fallback.find(item => item.id === listingId);
+        if (found) {
+          setListing(found);
+        }
       } finally {
         setLoading(false);
       }
@@ -71,7 +81,7 @@ export default function Checkout() {
         {/* Listing Info */}
         <div className="flex gap-4 items-center border-b border-gray-800 pb-4">
           <img
-            src={listing.images && listing.images.length > 0 ? listing.images[0].imageUrl : 'https://images.unsplash.com/photo-1542751371-adc38448a05e?w=800'}
+            src={getImageUrl(listing.images && listing.images.length > 0 ? listing.images[0].imageUrl : '')}
             alt=""
             className="w-24 aspect-video rounded-xl object-cover border border-gray-700"
           />

@@ -155,8 +155,8 @@ router.post('/', authenticateToken, async (req, res) => {
         coinAmount: parseInt(coinAmount || 0),
         squadInfo: squadInfo || '',
         description,
-        status: 'pending',
-        isVerified: false,
+        status: 'approved',
+        isVerified: true,
         images: {
           create: images.length > 0
             ? images.map((imgUrl, idx) => ({ imageUrl: imgUrl, isPrimary: idx === 0 }))
@@ -177,7 +177,7 @@ router.post('/', authenticateToken, async (req, res) => {
         data: {
           listingId: listing.id,
           userId: req.user.id,
-          status: 'pending',
+          status: 'approved',
           agreedFeePercent: 5.0,
         },
       });
@@ -186,8 +186,8 @@ router.post('/', authenticateToken, async (req, res) => {
     await prisma.notification.create({
       data: {
         userId: req.user.id,
-        title: isConsignment ? 'Pengajuan Titip Akun Diterima' : 'Pengajuan Jual Akun Diterima',
-        message: `Listing "${title}" berhasil dikirim dan saat ini berstatus Pending. Admin akan memeriksa kelayakan akun Anda.`,
+        title: isConsignment ? 'Titip Akun Berhasil Ditayangkan!' : 'Jual Akun Berhasil Ditayangkan!',
+        message: `Listing "${title}" berhasil diupload dan langsung tayang di Marketplace!`,
         type: 'listing',
         linkUrl: '/dashboard/user/listings',
       },
@@ -195,7 +195,7 @@ router.post('/', authenticateToken, async (req, res) => {
 
     res.status(201).json({
       success: true,
-      message: 'Pengajuan berhasil dikirim! Menunggu verifikasi dari Admin.',
+      message: 'Listing akun berhasil diupload dan langsung tayang di Marketplace!',
       data: listing,
     });
   } catch (error) {

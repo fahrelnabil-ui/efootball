@@ -1,11 +1,13 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
 import { ShieldCheck, Trophy, Sparkles, Coins, WalletCards, ArrowRight, Smartphone, Monitor, Layers } from 'lucide-react';
+import { getImageUrl } from '../../services/api';
 
 export default function AccountCard({ listing }) {
-  const primaryImg = listing.images && listing.images.length > 0
+  const rawImg = listing.images && listing.images.length > 0
     ? listing.images.find(img => img.isPrimary)?.imageUrl || listing.images[0].imageUrl
     : 'https://images.unsplash.com/photo-1542751371-adc38448a05e?w=800';
+  const primaryImg = getImageUrl(rawImg);
 
   return (
     <div className="glass-card glass-card-hover rounded-2xl overflow-hidden flex flex-col group border border-gray-800 bg-slate-900/80">

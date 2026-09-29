@@ -1,9 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { apiFetch } from '../../services/api';
+import { FALLBACK_LISTINGS } from '../../services/fallbackData';
 import AccountCard from '../../components/marketplace/AccountCard';
 import AccountFilter from '../../components/marketplace/AccountFilter';
-import { Gamepad2, SearchX } from 'lucide-react';
+import { Gamepad2, SearchX, Sparkles, Server } from 'lucide-react';
 
 export default function Marketplace() {
   const [searchParams] = useSearchParams();
@@ -24,6 +25,7 @@ export default function Marketplace() {
 
   const [listings, setListings] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [isOfflineMode, setIsOfflineMode] = useState(false);
 
   const fetchListings = async () => {
     setLoading(true);
@@ -40,11 +42,52 @@ export default function Marketplace() {
 
       const queryStr = queryParts.length > 0 ? `?${queryParts.join('&')}` : '';
       const res = await apiFetch(`/listings${queryStr}`);
-      if (res.success) {
-        setListings(res.data);
+      if (res.success && Array.isArray(res.data) && res.data.length > 0) {
+        let combined = [...res.data];
+        try {
+          const localListings = JSON.parse(localStorage.getItem('efootmarket_local_listings') || '[]');
+          for (const localItem of localListings) {
+            if (!combined.some(c => c.id === localItem.id || c.title === localItem.title)) {
+              combined.unshift(localItem);
+            }
+          }
+        } catch (_) {}
+        setListings(combined);
+        setIsOfflineMode(false);
+      } else {
+        throw new Error('Data server kosong atau belum aktif');
       }
     } catch (e) {
-      console.error('Fetch marketplace error:', e);
+      setIsOfflineMode(true);
+      let fallback = [...FALLBACK_LISTINGS];
+      try {
+        const localListings = JSON.parse(localStorage.getItem('efootmarket_local_listings') || '[]');
+        for (const localItem of localListings) {
+          if (!fallback.some(c => c.id === localItem.id || c.title === localItem.title)) {
+            fallback.unshift(localItem);
+          }
+        }
+      } catch (_) {}
+
+      let filtered = fallback.filter(item => {
+        if (filters.search) {
+          const s = filters.search.toLowerCase();
+          const matchTitle = item.title?.toLowerCase().includes(s);
+          const matchDesc = item.description?.toLowerCase().includes(s);
+          if (!matchTitle && !matchDesc) return false;
+        }
+        if (filters.minPrice && item.price < parseFloat(filters.minPrice)) return false;
+        if (filters.maxPrice && item.price > parseFloat(filters.maxPrice)) return false;
+        if (filters.epicMin && (item.epicCount || 0) < parseInt(filters.epicMin)) return false;
+        if (filters.bigTimeMin && (item.bigTimeCount || 0) < parseInt(filters.bigTimeMin)) return false;
+        if (filters.platform && filters.platform !== 'all' && item.platform !== filters.platform) return false;
+        return true;
+      });
+
+      if (filters.sort === 'price_asc') filtered.sort((a, b) => a.price - b.price);
+      if (filters.sort === 'price_desc') filtered.sort((a, b) => b.price - a.price);
+
+      setListings(filtered);
     } finally {
       setLoading(false);
     }

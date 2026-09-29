@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../../context/AuthContext';
-import { apiFetch } from '../../services/api';
+import { apiFetch, API_BASE, getImageUrl } from '../../services/api';
 import {
   LayoutDashboard,
   ShoppingBag,
@@ -100,37 +100,57 @@ export default function UserDashboard() {
     fetchData();
   }, [user]);
 
-  // Handle Photo File Upload ONLY
-  const handleFileUpload = async (e) => {
+  // Handle Photo File Upload with Base64 fallback
+  const handleFileUpload = (e) => {
     const file = e.target.files[0];
     if (!file) return;
 
     setUploadingImage(true);
-    const formData = new FormData();
-    formData.append('image', file);
+    setStatusMsg({ type: '', text: '' });
 
-    try {
-      const token = localStorage.getItem('efootmarket_token');
-      const response = await fetch('/api/upload', {
-        method: 'POST',
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-        body: formData,
-      });
+    // Read as Base64 for instant preview and offline-safe fallback
+    const reader = new FileReader();
+    reader.onload = async () => {
+      const base64Data = reader.result;
+      try {
+        const formData = new FormData();
+        formData.append('image', file);
+        const token = localStorage.getItem('efootmarket_token');
+        const uploadUrl = API_BASE.startsWith('http') ? `${API_BASE}/upload` : '/api/upload';
 
-      const data = await response.json();
-      if (data.success) {
-        setSellForm(prev => ({ ...prev, imageUrl: data.url }));
-        setStatusMsg({ type: 'success', text: 'Foto screenshot berhasil diunggah!' });
-      } else {
-        setStatusMsg({ type: 'error', text: data.message || 'Gagal mengunggah foto.' });
+        const response = await fetch(uploadUrl, {
+          method: 'POST',
+          headers: {
+            ...(token ? { Authorization: `Bearer ${token}` } : {}),
+          },
+          body: formData,
+        });
+
+        const contentType = response.headers.get('content-type') || '';
+        if (response.ok && contentType.includes('application/json')) {
+          const data = await response.json();
+          if (data.success && data.url) {
+            setSellForm(prev => ({ ...prev, imageUrl: data.url }));
+            setStatusMsg({ type: 'success', text: 'Foto screenshot berhasil diunggah ke server!' });
+            return;
+          }
+        }
+        // Fallback to base64 if server upload endpoint failed or returned non-JSON
+        setSellForm(prev => ({ ...prev, imageUrl: base64Data }));
+        setStatusMsg({ type: 'success', text: 'Foto screenshot berhasil dimuat (Base64)!' });
+      } catch (err) {
+        // Fallback to base64
+        setSellForm(prev => ({ ...prev, imageUrl: base64Data }));
+        setStatusMsg({ type: 'success', text: 'Foto screenshot berhasil dimuat!' });
+      } finally {
+        setUploadingImage(false);
       }
-    } catch (err) {
-      setStatusMsg({ type: 'error', text: 'Gagal mengunggah file gambar.' });
-    } finally {
+    };
+    reader.onerror = () => {
+      setStatusMsg({ type: 'error', text: 'Gagal membaca file gambar.' });
       setUploadingImage(false);
-    }
+    };
+    reader.readAsDataURL(file);
   };
 
   const handleCreateListing = async (isConsign = false) => {
@@ -153,6 +173,13 @@ export default function UserDashboard() {
 
       if (res.success) {
         setStatusMsg({ type: 'success', text: res.message });
+        // Save to local storage as fallback mirror
+        try {
+          const localListings = JSON.parse(localStorage.getItem('efootmarket_local_listings') || '[]');
+          localListings.unshift(res.data);
+          localStorage.setItem('efootmarket_local_listings', JSON.stringify(localListings));
+        } catch (_) {}
+
         setSellForm({
           title: '',
           price: '',
@@ -974,21 +1001,36 @@ export default function UserDashboard() {
                 <input
                   type="file"
                   accept="image/*"
-                  onChange={async (e) => {
+                  onChange={(e) => {
                     const file = e.target.files[0];
                     if (!file) return;
-                    const formData = new FormData();
-                    formData.append('image', file);
-                    const token = localStorage.getItem('efootmarket_token');
-                    const res = await fetch('/api/upload', {
-                      method: 'POST',
-                      headers: { Authorization: `Bearer ${token}` },
-                      body: formData,
-                    });
-                    const data = await res.json();
-                    if (data.success) {
-                      setPaymentProofUrl(data.url);
-                    }
+                    const reader = new FileReader();
+                    reader.onload = async () => {
+                      const base64Data = reader.result;
+                      try {
+                        const formData = new FormData();
+                        formData.append('image', file);
+                        const token = localStorage.getItem('efootmarket_token');
+                        const uploadUrl = API_BASE.startsWith('http') ? `${API_BASE}/upload` : '/api/upload';
+                        const res = await fetch(uploadUrl, {
+                          method: 'POST',
+                          headers: { ...(token ? { Authorization: `Bearer ${token}` } : {}) },
+                          body: formData,
+                        });
+                        const contentType = res.headers.get('content-type') || '';
+                        if (res.ok && contentType.includes('application/json')) {
+                          const data = await res.json();
+                          if (data.success && data.url) {
+                            setPaymentProofUrl(data.url);
+                            return;
+                          }
+                        }
+                        setPaymentProofUrl(base64Data);
+                      } catch {
+                        setPaymentProofUrl(base64Data);
+                      }
+                    };
+                    reader.readAsDataURL(file);
                   }}
                   className="w-full bg-slate-950 border border-gray-800 rounded-xl px-3 py-2 text-xs text-white"
                 />

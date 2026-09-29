@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, Link } from 'react-router-dom';
-import { apiFetch } from '../../services/api';
+import { apiFetch, getImageUrl } from '../../services/api';
+import { FALLBACK_LISTINGS } from '../../services/fallbackData';
 import {
   ShieldCheck,
   Trophy,
@@ -29,14 +30,26 @@ export default function AccountDetail() {
     async function loadDetail() {
       try {
         const res = await apiFetch(`/listings/${id}`);
-        if (res.success) {
+        if (res.success && res.data) {
           setListing(res.data);
           if (res.data.images && res.data.images.length > 0) {
             setSelectedImg(res.data.images[0].imageUrl);
           }
+          return;
         }
       } catch (e) {
-        console.error(e);
+        let fallback = [...FALLBACK_LISTINGS];
+        try {
+          const localListings = JSON.parse(localStorage.getItem('efootmarket_local_listings') || '[]');
+          fallback = [...localListings, ...fallback];
+        } catch (_) {}
+        const found = fallback.find(item => item.id === id);
+        if (found) {
+          setListing(found);
+          if (found.images && found.images.length > 0) {
+            setSelectedImg(found.images[0].imageUrl);
+          }
+        }
       } finally {
         setLoading(false);
       }
@@ -90,7 +103,7 @@ export default function AccountDetail() {
               className="aspect-video bg-slate-950 rounded-2xl overflow-hidden border border-gray-800 shadow-2xl relative cursor-zoom-in group"
             >
               <img
-                src={selectedImg || 'https://images.unsplash.com/photo-1542751371-adc38448a05e?w=800'}
+                src={getImageUrl(selectedImg)}
                 alt={listing.title}
                 className="w-full h-full object-contain bg-slate-950 transition-transform duration-300 group-hover:scale-105"
               />
@@ -114,7 +127,7 @@ export default function AccountDetail() {
                       selectedImg === img.imageUrl ? 'border-emerald-400 shadow-lg shadow-emerald-500/30' : 'border-gray-800 opacity-60 hover:opacity-100'
                     }`}
                   >
-                    <img src={img.imageUrl} alt="" className="w-full h-full object-contain" />
+                    <img src={getImageUrl(img.imageUrl)} alt="" className="w-full h-full object-contain" />
                   </button>
                 ))}
               </div>
@@ -135,7 +148,7 @@ export default function AccountDetail() {
                   ✕ Tutup (ESC)
                 </button>
                 <img 
-                  src={selectedImg} 
+                  src={getImageUrl(selectedImg)} 
                   alt="Full View Squad" 
                   className="max-w-full max-h-full object-contain rounded-xl shadow-2xl border border-gray-800"
                 />
