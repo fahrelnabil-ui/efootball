@@ -1,12 +1,8 @@
-node_modules
 node_modules/
 dist/
-uploads/
-.env
-.env.*
-!.env.example
-node_modules/
-dist/
+/uploads/
+!public/uploads/
+!public/uploads/**
 .env
 .env.*
 !.env.example

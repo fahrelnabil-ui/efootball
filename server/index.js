@@ -22,8 +22,10 @@ app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 
 // Static route for uploaded images
-const uploadDir = path.join(process.cwd(), 'uploads');
-app.use('/uploads', express.static(uploadDir));
+const publicUploadDir = path.join(process.cwd(), 'public', 'uploads');
+const legacyUploadDir = path.join(process.cwd(), 'uploads');
+app.use('/uploads', express.static(publicUploadDir));
+app.use('/uploads', express.static(legacyUploadDir));
 
 app.use((req, res, next) => {
   console.log(`[${new Date().toISOString()}] ${req.method} ${req.url}`);
