@@ -102,46 +102,55 @@ export default function AdminDashboard() {
     setUploadingImage(true);
     setMsg({ type: '', text: '' });
 
-    const reader = new FileReader();
-    reader.onload = async () => {
-      const base64Data = reader.result;
-      try {
-        const formData = new FormData();
-        formData.append('image', file);
-        const token = localStorage.getItem('efootmarket_token');
-        const uploadUrl = API_BASE.startsWith('http') ? `${API_BASE}/upload` : '/api/upload';
+    try {
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        const img = new Image();
+        img.onload = () => {
+          const canvas = document.createElement('canvas');
+          const MAX_WIDTH = 1200;
+          const MAX_HEIGHT = 1200;
+          let width = img.width;
+          let height = img.height;
 
-        const response = await fetch(uploadUrl, {
-          method: 'POST',
-          headers: {
-            ...(token ? { Authorization: `Bearer ${token}` } : {}),
-          },
-          body: formData,
-        });
-
-        const contentType = response.headers.get('content-type') || '';
-        if (response.ok && contentType.includes('application/json')) {
-          const data = await response.json();
-          if (data.success && data.url) {
-            setStockForm(prev => ({ ...prev, imageUrl: data.url }));
-            setMsg({ type: 'success', text: 'Foto berhasil diunggah!' });
-            return;
+          if (width > height) {
+            if (width > MAX_WIDTH) {
+              height = Math.round((height * MAX_WIDTH) / width);
+              width = MAX_WIDTH;
+            }
+          } else {
+            if (height > MAX_HEIGHT) {
+              width = Math.round((width * MAX_HEIGHT) / height);
+              height = MAX_HEIGHT;
+            }
           }
-        }
-        setStockForm(prev => ({ ...prev, imageUrl: base64Data }));
-        setMsg({ type: 'success', text: 'Foto berhasil dimuat (Base64)!' });
-      } catch (err) {
-        setStockForm(prev => ({ ...prev, imageUrl: base64Data }));
-        setMsg({ type: 'success', text: 'Foto berhasil dimuat!' });
-      } finally {
+
+          canvas.width = width;
+          canvas.height = height;
+          const ctx = canvas.getContext('2d');
+          ctx.drawImage(img, 0, 0, width, height);
+
+          // Highly optimized high quality JPEG
+          const dataUrl = canvas.toDataURL('image/jpeg', 0.85);
+          setStockForm(prev => ({ ...prev, imageUrl: dataUrl }));
+          setMsg({ type: 'success', text: 'Foto squad berhasil dioptimasi & dimuat!' });
+          setUploadingImage(false);
+        };
+        img.onerror = () => {
+          setMsg({ type: 'error', text: 'Gagal memproses gambar.' });
+          setUploadingImage(false);
+        };
+        img.src = e.target.result;
+      };
+      reader.onerror = () => {
+        setMsg({ type: 'error', text: 'Gagal membaca file gambar.' });
         setUploadingImage(false);
-      }
-    };
-    reader.onerror = () => {
-      setMsg({ type: 'error', text: 'Gagal membaca file gambar.' });
+      };
+      reader.readAsDataURL(file);
+    } catch (err) {
+      setMsg({ type: 'error', text: 'Gagal memproses file gambar.' });
       setUploadingImage(false);
-    };
-    reader.readAsDataURL(file);
+    }
   };
 
   // Submit Admin Stock (Create / Update)
