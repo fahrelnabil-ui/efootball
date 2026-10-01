@@ -83,8 +83,10 @@ export default function AccountDetail() {
     );
   }
 
+  const isSold = listing.status === 'sold' || (listing.stock !== undefined && listing.stock <= 0);
+
   return (
-    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-8">
+    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-6">
       {/* Back Button */}
       <Link
         to="/marketplace"
@@ -93,6 +95,24 @@ export default function AccountDetail() {
         <ArrowLeft className="w-4 h-4" /> Kembali ke Katalog Marketplace
       </Link>
 
+      {/* SOLD OUT ALERT BANNER */}
+      {isSold && (
+        <div className="bg-red-500/15 border-2 border-red-500/50 rounded-2xl p-4 sm:p-5 flex items-center gap-4 text-red-200 shadow-xl shadow-red-950/40">
+          <div className="w-12 h-12 rounded-xl bg-red-600/30 border border-red-500 flex items-center justify-center shrink-0 text-red-400 text-2xl font-black">
+            ⛔
+          </div>
+          <div className="space-y-1">
+            <div className="font-extrabold text-sm sm:text-base text-red-400 uppercase tracking-wider flex items-center gap-2">
+              <span>AKUN TELAH TERJUAL (SOLD OUT)</span>
+              <span className="bg-red-600 text-white text-[10px] px-2 py-0.5 rounded font-black tracking-normal">STOK: 0</span>
+            </div>
+            <p className="text-xs sm:text-sm text-gray-300">
+              Akun ini sudah berhasil laku terjual ke pembeli lain dan tidak dapat dipesan lagi. Jika Anda berminat dengan akun berspesifikasi serupa, silakan hubungi admin kami melalui WhatsApp!
+            </p>
+          </div>
+        </div>
+      )}
+
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
         {/* Left Column: Gallery & Details */}
         <div className="lg:col-span-2 space-y-8">
@@ -100,17 +120,23 @@ export default function AccountDetail() {
           <div className="space-y-3">
             <div 
               onClick={() => setIsZoomOpen(true)}
-              className="aspect-video bg-slate-950 rounded-2xl overflow-hidden border border-gray-800 shadow-2xl relative cursor-zoom-in group"
+              className="aspect-video bg-slate-950 rounded-2xl border border-gray-800 shadow-2xl relative cursor-zoom-in group"
             >
               <img
                 src={getImageUrl(selectedImg)}
                 alt={listing.title}
-                className="w-full h-full object-contain bg-slate-950 transition-transform duration-300 group-hover:scale-105"
+                className={`w-full h-full object-contain bg-slate-950 transition-transform duration-300 group-hover:scale-105 ${isSold ? 'grayscale-[25%]' : ''}`}
               />
               <div className="absolute top-4 left-4 bg-slate-900/90 backdrop-blur-md px-3 py-1 rounded-xl text-xs font-bold text-emerald-400 border border-emerald-500/30 flex items-center gap-1.5">
                 {listing.platform === 'PC' ? <Monitor className="w-4 h-4" /> : <Smartphone className="w-4 h-4" />}
                 {listing.platform}
               </div>
+
+              {isSold && (
+                <div className="absolute top-4 right-4 bg-red-600 text-white font-black text-xs uppercase px-3 py-1 rounded-xl shadow-lg border border-red-300">
+                  🔴 TERJUAL / SOLD
+                </div>
+              )}
               <div className="absolute bottom-3 right-3 bg-slate-900/90 backdrop-blur-md px-3 py-1 rounded-lg text-[11px] text-gray-300 font-medium border border-gray-700 opacity-80 group-hover:opacity-100 transition-opacity">
                 🔍 Klik untuk Perbesar Foto Full
               </div>
@@ -207,10 +233,15 @@ export default function AccountDetail() {
           <div className="glass-card rounded-2xl p-6 border border-gray-800 bg-slate-900/90 shadow-2xl sticky top-28 space-y-6">
             <div>
               <h1 className="text-xl font-bold text-white leading-snug">{listing.title}</h1>
-              <div className="mt-3 flex items-center gap-2">
-                <span className="text-3xl font-extrabold text-emerald-400">
+              <div className="mt-3 flex flex-wrap items-center gap-2.5">
+                <span className={`text-3xl font-extrabold ${isSold ? 'text-gray-300' : 'text-emerald-400'}`}>
                   Rp {listing.price.toLocaleString('id-ID')}
                 </span>
+                {isSold && (
+                  <span className="bg-red-600 text-white text-xs font-black px-2.5 py-1 rounded-md uppercase tracking-wider shadow-lg shadow-red-600/40">
+                    🔴 TERJUAL / SOLD
+                  </span>
+                )}
               </div>
             </div>
 
@@ -240,18 +271,31 @@ export default function AccountDetail() {
               </span>
             </div>
 
-            {/* Direct Buy WhatsApp Button */}
-            <button
-              onClick={handleBuyViaWhatsApp}
-              className="w-full gradient-button py-4 rounded-xl text-base font-extrabold flex items-center justify-center gap-2 shadow-xl shadow-emerald-500/20 hover:scale-[1.02] transition-all"
-            >
-              <MessageSquare className="w-5 h-5" />
-              Beli Akun (Hubungi Admin WA)
-            </button>
+            {/* Action WhatsApp Button */}
+            {isSold ? (
+              <button
+                onClick={() => {
+                  const textMessage = `Halo%20Admin%20REVE%20EFOOTBALL,%20saya%20melihat%20akun%20berikut%20sudah%20TERJUAL:%0A%0A📌%20*Judul*:%20${encodeURIComponent(listing.title)}%0A💰%20*Harga*:%20Rp%20${listing.price.toLocaleString('id-ID')}%0A🎮%20*Device*:%20${listing.platform}%0A%0AApakah%20ada%20stok%20akun%20serupa%20yang%20masih%20tersedia%20(ready)?`;
+                  window.open(`https://wa.me/${ADMIN_WA_NUMBER}?text=${textMessage}`, '_blank');
+                }}
+                className="w-full bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-slate-950 py-4 rounded-xl text-base font-extrabold flex items-center justify-center gap-2 shadow-xl shadow-amber-500/20 hover:scale-[1.02] transition-all cursor-pointer"
+              >
+                <MessageSquare className="w-5 h-5" />
+                Tanya Akun Serupa ke Admin WA
+              </button>
+            ) : (
+              <button
+                onClick={handleBuyViaWhatsApp}
+                className="w-full gradient-button py-4 rounded-xl text-base font-extrabold flex items-center justify-center gap-2 shadow-xl shadow-emerald-500/20 hover:scale-[1.02] transition-all cursor-pointer"
+              >
+                <MessageSquare className="w-5 h-5" />
+                Beli Akun (Hubungi Admin WA)
+              </button>
+            )}
 
             <div className="text-[11px] text-gray-400 text-center flex items-center justify-center gap-1">
               <Info className="w-3.5 h-3.5 text-gray-400" />
-              Tidak perlu registrasi/login! Langsung ke WhatsApp.
+              {isSold ? 'Akun sudah laku. Hubungi admin untuk rekomendasi stok squad lain!' : 'Tidak perlu registrasi/login! Langsung ke WhatsApp.'}
             </div>
           </div>
         </div>

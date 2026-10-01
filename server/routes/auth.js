@@ -9,24 +9,27 @@ const router = express.Router();
 // POST /api/auth/register
 router.post('/register', async (req, res) => {
   try {
-    const { name, email, password, phone } = req.body;
+    const cleanEmail = (email || '').trim().toLowerCase();
+    const cleanPassword = (password || '').trim();
 
-    if (!name || !email || !password) {
+    if (!name || !cleanEmail || !cleanPassword) {
       return res.status(400).json({ success: false, message: 'Nama, email, dan password wajib diisi.' });
     }
 
-    const existingUser = await prisma.user.findUnique({ where: { email } });
+    const existingUser = await prisma.user.findFirst({
+      where: { email: cleanEmail },
+    });
     if (existingUser) {
       return res.status(400).json({ success: false, message: 'Email sudah terdaftar. Silakan login.' });
     }
 
-    const hashedPassword = await bcrypt.hash(password, 10);
+    const hashedPassword = await bcrypt.hash(cleanPassword, 10);
     const user = await prisma.user.create({
       data: {
-        name,
-        email,
+        name: name.trim(),
+        email: cleanEmail,
         password: hashedPassword,
-        phone: phone || null,
+        phone: phone ? phone.trim() : null,
         role: 'user',
         balance: 0,
       },
@@ -61,17 +64,21 @@ router.post('/register', async (req, res) => {
 router.post('/login', async (req, res) => {
   try {
     const { email, password } = req.body;
+    const cleanEmail = (email || '').trim().toLowerCase();
+    const cleanPassword = (password || '').trim();
 
-    if (!email || !password) {
+    if (!cleanEmail || !cleanPassword) {
       return res.status(400).json({ success: false, message: 'Email dan password wajib diisi.' });
     }
 
-    const user = await prisma.user.findUnique({ where: { email } });
+    const user = await prisma.user.findFirst({
+      where: { email: cleanEmail },
+    });
     if (!user) {
       return res.status(401).json({ success: false, message: 'Email atau password salah.' });
     }
 
-    const validPassword = await bcrypt.compare(password, user.password);
+    const validPassword = await bcrypt.compare(cleanPassword, user.password);
     if (!validPassword) {
       return res.status(401).json({ success: false, message: 'Email atau password salah.' });
     }

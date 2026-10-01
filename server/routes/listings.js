@@ -21,9 +21,21 @@ router.get('/', async (req, res) => {
       status = 'approved',
     } = req.query;
 
-    const where = {
-      status: status === 'all' ? undefined : status,
-    };
+    const where = {};
+
+    if (status === 'approved') {
+      where.status = { in: ['approved', 'sold'] };
+    } else if (status === 'only_available') {
+      where.status = 'approved';
+      where.stock = { gt: 0 };
+    } else if (status === 'only_sold') {
+      where.OR = [
+        { status: 'sold' },
+        { stock: 0 },
+      ];
+    } else if (status && status !== 'all') {
+      where.status = status;
+    }
 
     if (search) {
       where.OR = [
@@ -34,15 +46,15 @@ router.get('/', async (req, res) => {
 
     if (minPrice || maxPrice) {
       where.price = {};
-      if (minPrice) where.price.gte = parseFloat(minPrice);
-      if (maxPrice) where.price.lte = parseFloat(maxPrice);
+      if (minPrice && !isNaN(parseFloat(minPrice))) where.price.gte = parseFloat(minPrice);
+      if (maxPrice && !isNaN(parseFloat(maxPrice))) where.price.lte = parseFloat(maxPrice);
     }
 
-    if (epicMin) where.epicCount = { gte: parseInt(epicMin) };
-    if (bigTimeMin) where.bigTimeCount = { gte: parseInt(bigTimeMin) };
-    if (playerMin) where.playerCount = { gte: parseInt(playerMin) };
-    if (gpMin) where.gpAmount = { gte: parseInt(gpMin) };
-    if (coinMin) where.coinAmount = { gte: parseInt(coinMin) };
+    if (epicMin && !isNaN(parseInt(epicMin, 10))) where.epicCount = { gte: parseInt(epicMin, 10) };
+    if (bigTimeMin && !isNaN(parseInt(bigTimeMin, 10))) where.bigTimeCount = { gte: parseInt(bigTimeMin, 10) };
+    if (playerMin && !isNaN(parseInt(playerMin, 10))) where.playerCount = { gte: parseInt(playerMin, 10) };
+    if (gpMin && !isNaN(parseInt(gpMin, 10))) where.gpAmount = { gte: parseInt(gpMin, 10) };
+    if (coinMin && !isNaN(parseInt(coinMin, 10))) where.coinAmount = { gte: parseInt(coinMin, 10) };
     if (platform && platform !== 'all') where.platform = platform;
 
     let orderBy = { createdAt: 'desc' };
@@ -237,6 +249,33 @@ router.patch('/:id/status', authenticateToken, requireAdmin, async (req, res) =>
     res.json({ success: true, message: `Status listing berhasil diubah menjadi ${status}`, data: listing });
   } catch (error) {
     res.status(500).json({ success: false, message: 'Gagal memperbarui status listing.' });
+  }
+});
+
+// DELETE /api/listings/:id - Delete Listing (Owner or Admin)
+router.delete('/:id', authenticateToken, async (req, res) => {
+  try {
+    const listingId = req.params.id;
+    const existing = await prisma.listing.findUnique({ where: { id: listingId } });
+    if (!existing) {
+      return res.status(404).json({ success: false, message: 'Listing tidak ditemukan.' });
+    }
+
+    if (existing.userId !== req.user.id && req.user.role !== 'admin') {
+      return res.status(403).json({ success: false, message: 'Anda tidak memiliki hak akses menghapus listing ini.' });
+    }
+
+    await prisma.listingImage.deleteMany({ where: { listingId } });
+    await prisma.gameAccountDetail.deleteMany({ where: { listingId } });
+    await prisma.consignment.deleteMany({ where: { listingId } });
+    await prisma.review.deleteMany({ where: { listingId } });
+    await prisma.order.deleteMany({ where: { listingId } });
+    await prisma.listing.delete({ where: { id: listingId } });
+
+    res.json({ success: true, message: 'Listing akun berhasil dihapus permanen.' });
+  } catch (error) {
+    console.error('Delete listing error:', error);
+    res.status(500).json({ success: false, message: 'Gagal menghapus listing: ' + (error.message || 'Server error') });
   }
 });
 

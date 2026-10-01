@@ -21,6 +21,7 @@ import {
   ArrowUpRight,
   TrendingUp,
   Image as ImageIcon,
+  Trash2,
 } from 'lucide-react';
 
 export default function UserDashboard() {
@@ -173,12 +174,6 @@ export default function UserDashboard() {
 
       if (res.success) {
         setStatusMsg({ type: 'success', text: res.message });
-        // Save to local storage as fallback mirror
-        try {
-          const localListings = JSON.parse(localStorage.getItem('efootmarket_local_listings') || '[]');
-          localListings.unshift(res.data);
-          localStorage.setItem('efootmarket_local_listings', JSON.stringify(localListings));
-        } catch (_) {}
 
         setSellForm({
           title: '',
@@ -198,6 +193,26 @@ export default function UserDashboard() {
         });
         fetchData();
         setActiveTab('listings');
+      } else {
+        setStatusMsg({ type: 'error', text: res.message });
+      }
+    } catch (err) {
+      setStatusMsg({ type: 'error', text: err.message });
+    }
+  };
+
+  const handleDeleteUserListing = async (id) => {
+    if (!window.confirm('Apakah Anda yakin ingin menghapus akun ini?')) return;
+    try {
+      const res = await apiFetch(`/listings/${id}`, { method: 'DELETE' });
+      if (res.success) {
+        setStatusMsg({ type: 'success', text: res.message || 'Akun berhasil dihapus.' });
+        try {
+          const localListings = JSON.parse(localStorage.getItem('efootmarket_local_listings') || '[]');
+          const filtered = localListings.filter(item => item.id !== id);
+          localStorage.setItem('efootmarket_local_listings', JSON.stringify(filtered));
+        } catch (_) {}
+        fetchData();
       } else {
         setStatusMsg({ type: 'error', text: res.message });
       }
@@ -594,13 +609,22 @@ export default function UserDashboard() {
                       <div className="text-xs text-emerald-400 font-extrabold">Rp {item.price.toLocaleString('id-ID')}</div>
                       <div className="flex items-center justify-between text-[11px] text-gray-400 border-t border-gray-800 pt-2">
                         <span>Device: {item.platform}</span>
-                        <span className={`font-bold px-2 py-0.5 rounded uppercase text-[10px] ${
-                          item.status === 'approved' ? 'bg-emerald-500/20 text-emerald-400' :
-                          item.status === 'pending' ? 'bg-amber-500/20 text-amber-400' :
-                          'bg-red-500/20 text-red-400'
-                        }`}>
-                          {item.status}
-                        </span>
+                        <div className="flex items-center gap-2">
+                          <span className={`font-bold px-2 py-0.5 rounded uppercase text-[10px] ${
+                            item.status === 'approved' ? 'bg-emerald-500/20 text-emerald-400' :
+                            item.status === 'pending' ? 'bg-amber-500/20 text-amber-400' :
+                            'bg-red-500/20 text-red-400'
+                          }`}>
+                            {item.status}
+                          </span>
+                          <button
+                            onClick={() => handleDeleteUserListing(item.id)}
+                            className="text-red-400 hover:text-red-300 p-1 rounded hover:bg-red-500/10 transition-colors cursor-pointer"
+                            title="Hapus Akun Ini"
+                          >
+                            <Trash2 className="w-3.5 h-3.5" />
+                          </button>
+                        </div>
                       </div>
                     </div>
                   ))}

@@ -53,6 +53,7 @@ export default function AdminDashboard() {
     title: '',
     price: '',
     platform: 'Android',
+    status: 'approved',
     stock: 1,
     playerCount: '',
     epicCount: '',
@@ -191,6 +192,7 @@ export default function AdminDashboard() {
       title: '',
       price: '',
       platform: 'Android',
+      status: 'approved',
       stock: 1,
       playerCount: '',
       epicCount: '',
@@ -212,14 +214,15 @@ export default function AdminDashboard() {
       title: item.title,
       price: item.price,
       platform: item.platform,
-      stock: item.stock || 1,
-      playerCount: item.playerCount || '',
-      epicCount: item.epicCount || '',
-      bigTimeCount: item.bigTimeCount || '',
-      gpAmount: item.gpAmount || '',
-      coinAmount: item.coinAmount || '',
+      status: item.status || (item.stock <= 0 ? 'sold' : 'approved'),
+      stock: item.stock !== undefined ? item.stock : 1,
+      playerCount: item.playerCount ?? '',
+      epicCount: item.epicCount ?? '',
+      bigTimeCount: item.bigTimeCount ?? '',
+      gpAmount: item.gpAmount ?? '',
+      coinAmount: item.coinAmount ?? '',
       squadInfo: item.squadInfo || '',
-      description: item.description,
+      description: item.description || '',
       loginType: 'Konami ID',
       credentials: item.gameAccountDetail?.encryptedCredentials?.replace('ENC_', '') || '',
       imageUrl: primaryImg,
@@ -227,13 +230,37 @@ export default function AdminDashboard() {
     setShowAddStockModal(true);
   };
 
+  const handleToggleSold = async (id, targetStatus) => {
+    try {
+      const res = await apiFetch(`/admin/listings/${id}/toggle-sold`, {
+        method: 'PATCH',
+        body: JSON.stringify({ status: targetStatus }),
+      });
+      if (res.success) {
+        setMsg({ type: 'success', text: res.message });
+        fetchAdminData();
+      } else {
+        setMsg({ type: 'error', text: res.message });
+      }
+    } catch (err) {
+      setMsg({ type: 'error', text: err.message });
+    }
+  };
+
   const handleDeleteListing = async (id) => {
-    if (!window.confirm('Apakah Anda yakin ingin menghapus stok akun ini?')) return;
+    if (!window.confirm('Apakah Anda yakin ingin menghapus stok akun ini secara permanen?')) return;
     try {
       const res = await apiFetch(`/admin/listings/${id}`, { method: 'DELETE' });
       if (res.success) {
-        setMsg({ type: 'success', text: 'Stok akun berhasil dihapus.' });
+        setMsg({ type: 'success', text: res.message || 'Stok akun berhasil dihapus permanen.' });
+        try {
+          const localListings = JSON.parse(localStorage.getItem('efootmarket_local_listings') || '[]');
+          const filtered = localListings.filter(item => item.id !== id);
+          localStorage.setItem('efootmarket_local_listings', JSON.stringify(filtered));
+        } catch (_) {}
         fetchAdminData();
+      } else {
+        setMsg({ type: 'error', text: res.message });
       }
     } catch (err) {
       setMsg({ type: 'error', text: err.message });
@@ -529,21 +556,39 @@ export default function AdminDashboard() {
                       ? item.images[0].imageUrl
                       : 'https://images.unsplash.com/photo-1542751371-adc38448a05e?w=800';
 
+                    const isSold = item.status === 'sold' || (item.stock !== undefined && item.stock <= 0);
+
                     return (
                       <div key={item.id} className="bg-slate-950 p-4 rounded-2xl border border-gray-800 flex flex-col sm:flex-row gap-4 items-start sm:items-center justify-between hover:border-gray-700 transition-colors">
                         <div className="flex gap-4 items-center flex-1 min-w-0">
-                          <div className="w-24 sm:w-28 h-20 rounded-xl overflow-hidden bg-slate-900 border border-gray-700 shrink-0 flex items-center justify-center p-1">
+                          <div className="w-24 sm:w-28 h-20 rounded-xl overflow-hidden bg-slate-900 border border-gray-700 shrink-0 flex items-center justify-center p-1 relative">
                             <img
                               src={primaryImg}
                               alt=""
-                              className="w-full h-full object-contain rounded-lg"
+                              className={`w-full h-full object-contain rounded-lg ${isSold ? 'grayscale-[40%]' : ''}`}
                             />
+                            {isSold && (
+                              <div className="absolute inset-0 bg-black/50 flex items-center justify-center rounded-xl pointer-events-none">
+                                <span className="bg-red-600 text-white text-[9px] font-black uppercase px-2 py-0.5 rounded shadow">SOLD</span>
+                              </div>
+                            )}
                           </div>
                           <div className="space-y-1 flex-1 min-w-0">
-                            <h4 className="text-sm font-bold text-white leading-snug truncate sm:whitespace-normal">{item.title}</h4>
+                            <div className="flex items-center gap-2">
+                              <h4 className="text-sm font-bold text-white leading-snug truncate sm:whitespace-normal">{item.title}</h4>
+                              {isSold ? (
+                                <span className="shrink-0 px-2 py-0.5 rounded-md text-[10px] font-extrabold bg-red-500/20 text-red-400 border border-red-500/30">
+                                  🔴 TERJUAL
+                                </span>
+                              ) : (
+                                <span className="shrink-0 px-2 py-0.5 rounded-md text-[10px] font-extrabold bg-emerald-500/20 text-emerald-400 border border-emerald-500/30">
+                                  🟢 READY
+                                </span>
+                              )}
+                            </div>
                             <div className="text-xs text-emerald-400 font-extrabold flex flex-wrap items-center gap-x-3 gap-y-1">
                               <span>Rp {item.price.toLocaleString('id-ID')}</span>
-                              <span className="text-gray-400 font-medium">Stok: <strong className="text-cyan-400">{item.stock || 1}</strong></span>
+                              <span className="text-gray-400 font-medium">Stok: <strong className={isSold ? 'text-red-400' : 'text-cyan-400'}>{item.stock ?? 1}</strong></span>
                               <span className="text-gray-400 font-medium">Device: {item.platform}</span>
                             </div>
                             <div className="text-[11px] text-gray-400 flex flex-wrap gap-2">
@@ -557,6 +602,23 @@ export default function AdminDashboard() {
                         </div>
 
                         <div className="flex items-center gap-2 w-full sm:w-auto justify-end border-t sm:border-t-0 pt-3 sm:pt-0 border-gray-800 shrink-0">
+                          {isSold ? (
+                            <button
+                              onClick={() => handleToggleSold(item.id, 'approved')}
+                              className="bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 px-3 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer whitespace-nowrap"
+                              title="Tandai akun tersedia kembali"
+                            >
+                              Tandai Ready
+                            </button>
+                          ) : (
+                            <button
+                              onClick={() => handleToggleSold(item.id, 'sold')}
+                              className="bg-red-500/10 hover:bg-red-500/20 text-red-400 border border-red-500/30 px-3 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer whitespace-nowrap"
+                              title="Tandai akun sebagai terjual (SOLD OUT)"
+                            >
+                              Tandai Terjual (SOLD)
+                            </button>
+                          )}
                           <button
                             onClick={() => handleOpenEdit(item)}
                             className="bg-emerald-500 hover:bg-emerald-400 text-slate-950 px-4 py-2 rounded-xl text-xs font-extrabold flex items-center gap-1.5 shadow-md shadow-emerald-500/20 transition-all cursor-pointer"
@@ -603,21 +665,39 @@ export default function AdminDashboard() {
                       ? item.images[0].imageUrl
                       : 'https://images.unsplash.com/photo-1542751371-adc38448a05e?w=800';
 
+                    const isSold = item.status === 'sold' || (item.stock !== undefined && item.stock <= 0);
+
                     return (
                       <div key={item.id} className="bg-slate-950 p-4 sm:p-5 rounded-2xl border border-gray-800 flex flex-col sm:flex-row gap-4 items-start sm:items-center justify-between hover:border-gray-700 transition-colors">
                         <div className="flex gap-4 items-center flex-1 min-w-0">
-                          <div className="w-24 sm:w-28 h-20 rounded-xl overflow-hidden bg-slate-900 border border-gray-700 shrink-0 flex items-center justify-center p-1">
+                          <div className="w-24 sm:w-28 h-20 rounded-xl overflow-hidden bg-slate-900 border border-gray-700 shrink-0 flex items-center justify-center p-1 relative">
                             <img
                               src={primaryImg}
                               alt=""
-                              className="w-full h-full object-contain rounded-lg"
+                              className={`w-full h-full object-contain rounded-lg ${isSold ? 'grayscale-[40%]' : ''}`}
                             />
+                            {isSold && (
+                              <div className="absolute inset-0 bg-black/50 flex items-center justify-center rounded-xl pointer-events-none">
+                                <span className="bg-red-600 text-white text-[9px] font-black uppercase px-2 py-0.5 rounded shadow">SOLD</span>
+                              </div>
+                            )}
                           </div>
                           <div className="space-y-1 flex-1 min-w-0">
-                            <h4 className="text-sm font-bold text-white leading-snug truncate sm:whitespace-normal">{item.title}</h4>
+                            <div className="flex items-center gap-2">
+                              <h4 className="text-sm font-bold text-white leading-snug truncate sm:whitespace-normal">{item.title}</h4>
+                              {isSold ? (
+                                <span className="shrink-0 px-2 py-0.5 rounded-md text-[10px] font-extrabold bg-red-500/20 text-red-400 border border-red-500/30">
+                                  🔴 TERJUAL
+                                </span>
+                              ) : (
+                                <span className="shrink-0 px-2 py-0.5 rounded-md text-[10px] font-extrabold bg-emerald-500/20 text-emerald-400 border border-emerald-500/30">
+                                  🟢 READY
+                                </span>
+                              )}
+                            </div>
                             <div className="text-xs text-emerald-400 font-extrabold flex flex-wrap items-center gap-x-3 gap-y-1">
                               <span>Rp {item.price.toLocaleString('id-ID')}</span>
-                              <span className="text-gray-400 font-medium">Stok: <strong className="text-cyan-400">{item.stock || 1}</strong></span>
+                              <span className="text-gray-400 font-medium">Stok: <strong className={isSold ? 'text-red-400' : 'text-cyan-400'}>{item.stock ?? 1}</strong></span>
                               <span className="text-gray-400 font-medium">Device: {item.platform}</span>
                             </div>
                             <div className="text-[11px] text-gray-400 flex flex-wrap gap-2">
@@ -646,6 +726,24 @@ export default function AdminDashboard() {
                                 Reject
                               </button>
                             </>
+                          )}
+
+                          {isSold ? (
+                            <button
+                              onClick={() => handleToggleSold(item.id, 'approved')}
+                              className="bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 px-3 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer whitespace-nowrap"
+                              title="Tandai akun tersedia kembali"
+                            >
+                              Tandai Ready
+                            </button>
+                          ) : (
+                            <button
+                              onClick={() => handleToggleSold(item.id, 'sold')}
+                              className="bg-red-500/10 hover:bg-red-500/20 text-red-400 border border-red-500/30 px-3 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer whitespace-nowrap"
+                              title="Tandai akun sebagai terjual (SOLD OUT)"
+                            >
+                              Tandai Terjual (SOLD)
+                            </button>
                           )}
 
                           <button
@@ -788,7 +886,7 @@ export default function AdminDashboard() {
                 />
               </div>
 
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-4 gap-4">
                 <div>
                   <label className="font-semibold text-gray-300 mb-1 block">Harga (Rp)</label>
                   <input
@@ -814,13 +912,42 @@ export default function AdminDashboard() {
                   </select>
                 </div>
                 <div>
-                  <label className="font-semibold text-gray-300 mb-1 block">Jumlah Stok Available</label>
+                  <label className="font-semibold text-gray-300 mb-1 block">Status Akun</label>
+                  <select
+                    value={stockForm.status || 'approved'}
+                    onChange={(e) => {
+                      const newStatus = e.target.value;
+                      setStockForm(prev => ({
+                        ...prev,
+                        status: newStatus,
+                        stock: newStatus === 'sold' ? 0 : (prev.stock > 0 ? prev.stock : 1),
+                      }));
+                    }}
+                    className={`w-full bg-slate-950 border rounded-xl px-3.5 py-2.5 font-bold focus:outline-none ${
+                      stockForm.status === 'sold'
+                        ? 'border-red-500/50 text-red-400'
+                        : 'border-emerald-500/50 text-emerald-400'
+                    }`}
+                  >
+                    <option value="approved">🟢 Tersedia (Ready)</option>
+                    <option value="sold">🔴 Terjual (SOLD OUT)</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="font-semibold text-gray-300 mb-1 block">Jumlah Stok</label>
                   <input
                     type="number"
-                    min="1"
+                    min="0"
                     required
                     value={stockForm.stock}
-                    onChange={(e) => setStockForm({ ...stockForm, stock: e.target.value })}
+                    onChange={(e) => {
+                      const val = parseInt(e.target.value, 10);
+                      setStockForm(prev => ({
+                        ...prev,
+                        stock: e.target.value,
+                        status: val <= 0 ? 'sold' : (prev.status === 'sold' ? 'approved' : prev.status),
+                      }));
+                    }}
                     className="w-full bg-slate-950 border border-gray-800 rounded-xl px-3.5 py-2.5 text-white focus:outline-none focus:border-emerald-500"
                   />
                 </div>

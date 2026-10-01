@@ -3,6 +3,7 @@ dist/
 /uploads/
 !public/uploads/
 !public/uploads/**
-.env
+*.env
 .env.*
 !.env.example
+*-backup.*

@@ -78,23 +78,22 @@ async function main() {
   const listing1 = await prisma.listing.create({
     data: {
       userId: sellerUser.id,
-      title: 'Akun Sultan 25+ Epic Boosted (Messi 105, Gullit, Rummenigge) + 3500 Coins',
-      price: 1850000,
+      title: 'Akun Gacor Big Time Ft Epic',
+      price: 1800000,
       platform: 'Android',
-      playerCount: 145,
-      epicCount: 26,
-      bigTimeCount: 8,
-      gpAmount: 4500000,
-      coinAmount: 3500,
-      squadInfo: 'Division 1 Peak Rank #420, Team Strength 3150+, Manager Pep Guardiola Boost',
-      description: 'Akun rawatan pribadi dari season 1! Punya Messi 105, Gullit Big Time, Rummenigge Epic, Vieira, Maldini, Cech. eFootball Coins melimpah 3500 siap gacha pack baru. Login Konami ID aman sentosa, siap bind email buyer.',
+      stock: 1,
+      playerCount: 75,
+      epicCount: 40,
+      bigTimeCount: 5,
+      gpAmount: 2300000,
+      coinAmount: 1200,
+      squadInfo: 'Division 1, Team Strength 3281',
+      description: 'Akun starter sangat ekonomis tapi piala melimpah! Memiliki eFootball coins utuh yang bisa dipakai untuk menggulung pack event mendatang.',
       isVerified: true,
       status: 'approved',
       images: {
         create: [
-          { imageUrl: 'https://images.unsplash.com/photo-1542751371-adc38448a05e?w=800', isPrimary: true },
-          { imageUrl: 'https://images.unsplash.com/photo-1511512578047-dfb367046420?w=800', isPrimary: false },
-          { imageUrl: 'https://images.unsplash.com/photo-1538481199705-c710c4e965fc?w=800', isPrimary: false },
+          { imageUrl: '/uploads/account-1790527280752-858049056.jpeg', isPrimary: true },
         ]
       },
       gameAccountDetail: {
@@ -111,21 +110,21 @@ async function main() {
     data: {
       userId: sellerUser.id,
       title: 'Squad Full Big Time & Showtime (Ronaldo 103, Neymar, Beckham) Fast Trade',
-      price: 1200000,
-      platform: 'iOS',
+      price: 250000,
+      platform: 'Android',
+      stock: 1,
       playerCount: 110,
-      epicCount: 18,
-      bigTimeCount: 12,
+      epicCount: 6,
+      bigTimeCount: 0,
       gpAmount: 2800000,
       coinAmount: 1200,
       squadInfo: 'Squad Collective Strength 3120, Trainer Xavi 88 Manager',
-      description: 'Spesial buat pecinta iOS! Akun wangi berisikan Ronaldo Big Time, Neymar Showtime Blitz Curler, Beckham 102. GP masih ada 2.8 Juta. Data bersih 100%.',
+      description: 'cocok buat yang ingin akun murah tapi pemain nya bagus',
       isVerified: true,
       status: 'approved',
       images: {
         create: [
-          { imageUrl: 'https://images.unsplash.com/photo-1550745165-9bc0b252726f?w=800', isPrimary: true },
-          { imageUrl: 'https://images.unsplash.com/photo-1612287230202-1ff1d85d1bdf?w=800', isPrimary: false }
+          { imageUrl: '/uploads/account-1790527325007-992487352.jpeg', isPrimary: true },
         ]
       },
       gameAccountDetail: {
@@ -133,66 +132,6 @@ async function main() {
           loginType: 'Konami ID',
           encryptedCredentials: 'ENC_USER2_PASS2_SECURE_TOKEN_ABC',
           notes: 'Sudah diun-link dari Game Center.'
-        }
-      }
-    }
-  });
-
-  const listing3 = await prisma.listing.create({
-    data: {
-      userId: sellerUser.id,
-      title: 'Akun Starter Epic Messi 105 + Cruyff + 5000 Coins Melimpah',
-      price: 450000,
-      platform: 'Android',
-      playerCount: 75,
-      epicCount: 8,
-      bigTimeCount: 3,
-      gpAmount: 1200000,
-      coinAmount: 5000,
-      squadInfo: 'Division 3, Team Strength 2980',
-      description: 'Akun starter sangat ekonomis tapi piala melimpah! Memiliki 5000 eFootball coins utuh yang bisa dipakai untuk menggulung pack event mendatang.',
-      isVerified: true,
-      status: 'approved',
-      images: {
-        create: [
-          { imageUrl: 'https://images.unsplash.com/photo-1511512578047-dfb367046420?w=800', isPrimary: true }
-        ]
-      },
-      gameAccountDetail: {
-        create: {
-          loginType: 'Konami ID',
-          encryptedCredentials: 'ENC_USER3_PASS3_SECURE_TOKEN_DEF',
-          notes: 'Konami ID polos tanpa sisa data bekas.'
-        }
-      }
-    }
-  });
-
-  const listing4 = await prisma.listing.create({
-    data: {
-      userId: sellerUser.id,
-      title: 'Endgame eFootball Account (Gullit, Vieira, Maldini, Cech) High Rank',
-      price: 2750000,
-      platform: 'PC',
-      playerCount: 210,
-      epicCount: 34,
-      bigTimeCount: 16,
-      gpAmount: 8900000,
-      coinAmount: 2100,
-      squadInfo: 'Top 100 Steam Leaderboard, Full Booster Managers & 3200+ Rating',
-      description: 'Akun Steam eFootball PC kelas dewa. Seluruh pemain META defense & midfield lengkap (Gullit, Vieira 104, Maldini, Cech, Schmeichel, Cannavaro). Dijual cepat karena kesibukan kerja.',
-      isVerified: true,
-      status: 'approved',
-      images: {
-        create: [
-          { imageUrl: 'https://images.unsplash.com/photo-1538481199705-c710c4e965fc?w=800', isPrimary: true }
-        ]
-      },
-      gameAccountDetail: {
-        create: {
-          loginType: 'Konami ID',
-          encryptedCredentials: 'ENC_USER4_PASS4_SECURE_TOKEN_GHI',
-          notes: 'Konami ID + Email khusus Steam.'
         }
       }
     }
@@ -265,7 +204,7 @@ async function main() {
   const orderProcessing = await prisma.order.create({
     data: {
       orderNumber: 'EFM-20260927-0002',
-      listingId: listing3.id,
+      listingId: listing1.id,
       buyerId: buyerUser.id,
       sellerId: sellerUser.id,
       accountPrice: 450000,

@@ -68,6 +68,18 @@ router.post('/listings', authenticateToken, requireAdmin, async (req, res) => {
       notes = '',
     } = req.body;
 
+    const safeInt = (val, fallback = 0) => {
+      if (val === undefined || val === null || val === '') return fallback;
+      const parsed = parseInt(val, 10);
+      return isNaN(parsed) ? fallback : parsed;
+    };
+
+    const safeFloat = (val, fallback = 0) => {
+      if (val === undefined || val === null || val === '') return fallback;
+      const parsed = parseFloat(val);
+      return isNaN(parsed) ? fallback : parsed;
+    };
+
     if (!title || !price || !platform || !description) {
       return res.status(400).json({ success: false, message: 'Judul, harga, platform, dan deskripsi wajib diisi.' });
     }
@@ -76,14 +88,14 @@ router.post('/listings', authenticateToken, requireAdmin, async (req, res) => {
       data: {
         userId: req.user.id,
         title,
-        price: parseFloat(price),
+        price: safeFloat(price, 0),
         platform,
-        stock: parseInt(stock || 1),
-        playerCount: parseInt(playerCount || 0),
-        epicCount: parseInt(epicCount || 0),
-        bigTimeCount: parseInt(bigTimeCount || 0),
-        gpAmount: parseInt(gpAmount || 0),
-        coinAmount: parseInt(coinAmount || 0),
+        stock: safeInt(stock, 1),
+        playerCount: safeInt(playerCount, 0),
+        epicCount: safeInt(epicCount, 0),
+        bigTimeCount: safeInt(bigTimeCount, 0),
+        gpAmount: safeInt(gpAmount, 0),
+        coinAmount: safeInt(coinAmount, 0),
         squadInfo: squadInfo || '',
         description,
         status: 'approved', // Admin listings are immediately approved and live
@@ -134,21 +146,41 @@ router.put('/listings/:id', authenticateToken, requireAdmin, async (req, res) =>
       credentials,
     } = req.body;
 
+    const safeInt = (val, fallback = 0) => {
+      if (val === undefined || val === null || val === '') return fallback;
+      const parsed = parseInt(val, 10);
+      return isNaN(parsed) ? fallback : parsed;
+    };
+
+    const safeFloat = (val, fallback = 0) => {
+      if (val === undefined || val === null || val === '') return fallback;
+      const parsed = parseFloat(val);
+      return isNaN(parsed) ? fallback : parsed;
+    };
+
+    const parsedStock = safeInt(stock, 1);
+    let finalStatus = status;
+    if (!finalStatus) {
+      finalStatus = parsedStock <= 0 ? 'sold' : 'approved';
+    } else if (parsedStock <= 0) {
+      finalStatus = 'sold';
+    }
+
     const listing = await prisma.listing.update({
       where: { id: req.params.id },
       data: {
-        title,
-        price: price ? parseFloat(price) : undefined,
-        platform,
-        stock: stock !== undefined ? parseInt(stock) : undefined,
-        playerCount: playerCount !== undefined ? parseInt(playerCount) : undefined,
-        epicCount: epicCount !== undefined ? parseInt(epicCount) : undefined,
-        bigTimeCount: bigTimeCount !== undefined ? parseInt(bigTimeCount) : undefined,
-        gpAmount: gpAmount !== undefined ? parseInt(gpAmount) : undefined,
-        coinAmount: coinAmount !== undefined ? parseInt(coinAmount) : undefined,
-        squadInfo,
-        description,
-        status,
+        title: title || undefined,
+        price: price !== undefined && price !== '' ? safeFloat(price, 0) : undefined,
+        platform: platform || undefined,
+        stock: finalStatus === 'sold' ? 0 : parsedStock,
+        playerCount: safeInt(playerCount, 0),
+        epicCount: safeInt(epicCount, 0),
+        bigTimeCount: safeInt(bigTimeCount, 0),
+        gpAmount: safeInt(gpAmount, 0),
+        coinAmount: safeInt(coinAmount, 0),
+        squadInfo: squadInfo !== undefined ? squadInfo : undefined,
+        description: description !== undefined ? description : undefined,
+        status: finalStatus,
       },
     });
 
@@ -179,22 +211,83 @@ router.put('/listings/:id', authenticateToken, requireAdmin, async (req, res) =>
 
     res.json({
       success: true,
-      message: 'Data stok & foto akun berhasil diperbarui!',
+      message: finalStatus === 'sold' 
+        ? 'Stok berhasil diperbarui: Akun ditandai sebagai TERJUAL (SOLD)!' 
+        : 'Data stok & foto akun berhasil diperbarui!',
       data: listing,
     });
   } catch (error) {
     console.error('Admin update listing error:', error);
-    res.status(500).json({ success: false, message: 'Gagal memperbarui stok listing.' });
+    res.status(500).json({ success: false, message: 'Gagal memperbarui stok listing: ' + (error.message || 'Server error') });
+  }
+});
+
+// PATCH /api/admin/listings/:id/toggle-sold - Admin Quick Toggle Sold/Ready
+router.patch('/listings/:id/toggle-sold', authenticateToken, requireAdmin, async (req, res) => {
+  try {
+    const listing = await prisma.listing.findUnique({ where: { id: req.params.id } });
+    if (!listing) {
+      return res.status(404).json({ success: false, message: 'Listing tidak ditemukan.' });
+    }
+
+    const isCurrentlySold = listing.status === 'sold' || listing.stock <= 0;
+    const targetStatus = req.body.status || (isCurrentlySold ? 'approved' : 'sold');
+    const newStock = targetStatus === 'sold' ? 0 : (listing.stock > 0 ? listing.stock : 1);
+
+    const updated = await prisma.listing.update({
+      where: { id: req.params.id },
+      data: {
+        status: targetStatus,
+        stock: newStock,
+      },
+    });
+
+    res.json({
+      success: true,
+      message: targetStatus === 'sold'
+        ? 'Akun berhasil ditandai sebagai TERJUAL (SOLD).'
+        : 'Akun berhasil ditandai kembali sebagai TERSEDIA (READY).',
+      data: updated,
+    });
+  } catch (error) {
+    console.error('Admin toggle sold error:', error);
+    res.status(500).json({ success: false, message: 'Gagal mengubah status terjual listing.' });
   }
 });
 
 // DELETE /api/admin/listings/:id - Admin Delete Listing
 router.delete('/listings/:id', authenticateToken, requireAdmin, async (req, res) => {
   try {
-    await prisma.listing.delete({ where: { id: req.params.id } });
-    res.json({ success: true, message: 'Stok akun berhasil dihapus.' });
+    const listingId = req.params.id;
+
+    // Check if listing exists
+    const existing = await prisma.listing.findUnique({ where: { id: listingId } });
+    if (!existing) {
+      return res.status(404).json({ success: false, message: 'Listing tidak ditemukan.' });
+    }
+
+    // Safely delete any associated child records in cascade order
+    await prisma.listingImage.deleteMany({ where: { listingId } });
+    await prisma.gameAccountDetail.deleteMany({ where: { listingId } });
+    await prisma.consignment.deleteMany({ where: { listingId } });
+    await prisma.review.deleteMany({ where: { listingId } });
+
+    // Handle any orders linked to this listing (delete payments, disputes, transactions first)
+    const orders = await prisma.order.findMany({ where: { listingId } });
+    for (const order of orders) {
+      await prisma.payment.deleteMany({ where: { orderId: order.id } });
+      await prisma.dispute.deleteMany({ where: { orderId: order.id } });
+      await prisma.transaction.deleteMany({ where: { orderId: order.id } });
+    }
+    await prisma.order.deleteMany({ where: { listingId } });
+
+    // Finally delete the listing
+    await prisma.listing.delete({ where: { id: listingId } });
+
+    res.json({ success: true, message: 'Stok akun berhasil dihapus permanen dari sistem.' });
   } catch (error) {
-    res.status(500).json({ success: false, message: 'Gagal menghapus stok akun.' });
+    console.error('Delete listing error:', error);
+    res.status(500).json({ success: false, message: 'Gagal menghapus stok akun: ' + (error.message || 'Server error') });
   }
 });
 

@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
-import { Gamepad2, Mail, Lock, AlertCircle, ArrowRight } from 'lucide-react';
+import { Mail, Lock, AlertCircle, ArrowRight, Eye, EyeOff } from 'lucide-react';
 
 export default function Login() {
   const { login } = useAuth();
@@ -11,6 +11,7 @@ export default function Login() {
 
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState('');
   const [submitting, setSubmitting] = useState(false);
 
@@ -20,11 +21,13 @@ export default function Login() {
     setError('');
 
     try {
-      const res = await login(email, password);
+      const cleanEmail = email.trim().toLowerCase();
+      const cleanPassword = password.trim();
+      const res = await login(cleanEmail, cleanPassword);
       if (res.success) {
         navigate(redirect);
       } else {
-        setError(res.message || 'Login gagal.');
+        setError(res.message || 'Email atau password salah.');
       }
     } catch (err) {
       setError(err.message || 'Gagal terhubung ke server.');
@@ -51,7 +54,12 @@ export default function Login() {
         {error && (
           <div className="bg-red-500/10 border border-red-500/30 text-red-400 text-xs p-3.5 rounded-xl flex items-center gap-2">
             <AlertCircle className="w-4 h-4 shrink-0" />
-            {error}
+            <div>
+              <div className="font-bold">{error}</div>
+              <div className="text-[11px] text-gray-400 mt-0.5">
+                Pastikan email & password sudah benar, atau daftar akun baru jika belum terdaftar.
+              </div>
+            </div>
           </div>
         )}
 
@@ -76,27 +84,27 @@ export default function Login() {
             <div className="relative">
               <Lock className="w-4 h-4 text-gray-400 absolute left-3.5 top-3.5" />
               <input
-                type="password"
+                type={showPassword ? 'text' : 'password'}
                 required
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 placeholder="••••••••"
-                className="w-full bg-slate-950 border border-gray-800 rounded-xl pl-10 pr-4 py-2.5 text-sm text-white placeholder-gray-500 focus:outline-none focus:border-emerald-500"
+                className="w-full bg-slate-950 border border-gray-800 rounded-xl pl-10 pr-10 py-2.5 text-sm text-white placeholder-gray-500 focus:outline-none focus:border-emerald-500"
               />
+              <button
+                type="button"
+                onClick={() => setShowPassword(!showPassword)}
+                className="absolute right-3.5 top-3.5 text-gray-400 hover:text-gray-200 cursor-pointer"
+              >
+                {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+              </button>
             </div>
-          </div>
-
-          {/* Quick Demo Credentials Reminder */}
-          <div className="bg-slate-950 p-3 rounded-xl border border-gray-800 text-[11px] text-gray-400 space-y-1">
-            <div className="font-bold text-emerald-400">Akun Demo Cepat:</div>
-            <div>User: buyer@reveefootball.com | Pass: password123</div>
-            <div>Admin: admin@reveefootball.com | Pass: password123</div>
           </div>
 
           <button
             type="submit"
             disabled={submitting}
-            className="w-full gradient-button py-3 rounded-xl text-sm font-extrabold flex items-center justify-center gap-2 shadow-lg shadow-emerald-500/20"
+            className="w-full gradient-button py-3 rounded-xl text-sm font-extrabold flex items-center justify-center gap-2 shadow-lg shadow-emerald-500/20 cursor-pointer"
           >
             {submitting ? 'Memproses...' : 'Masuk Akun'}
             <ArrowRight className="w-4 h-4" />
